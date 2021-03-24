@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import "react-datepicker/dist/react-datepicker.css"
 import axios from 'axios'
+import "../App.css"
 
 
 export default class EditOrder extends Component {
@@ -14,6 +14,7 @@ export default class EditOrder extends Component {
         this.onChangeUsedPromoCode = this.onChangeUsedPromoCode.bind(this);
         this.onChangeOrderStatus = this.onChangeOrderStatus.bind(this);
         this.onChangeOrderName = this.onChangeOrderName.bind(this);
+        this.addEmptyProductField = this.addEmptyProductField.bind(this)
         this.onSubmit = this.onSubmit.bind(this);
 
         this.state = {
@@ -104,10 +105,8 @@ export default class EditOrder extends Component {
     }
 
     onChangeOrderQty(index, e) {
-        // console.log(e.target.options.selectedIndex)
         let tempCart = [...this.state.cart];
         tempCart[index].quantity =  e.target.value
-        // tempCart[index].id = e.target.options.selectedIndex
         this.setState({
             cart: tempCart
         })
@@ -119,6 +118,19 @@ export default class EditOrder extends Component {
             return product.price
         }
     }  
+
+    addEmptyProductField(e){
+        let tempCart = [...this.state.cart]
+        tempCart.push({
+            id: "", 
+            size: "", 
+            quantity: 0, 
+            name: ""
+        })
+        this.setState({
+            cart: tempCart
+        })
+    }
 
     orderList() {
         return this.state.cart.map((product, index) => {
@@ -182,9 +194,16 @@ export default class EditOrder extends Component {
                 <h3>Edit Order Log</h3>
                 <form onSubmit={this.onSubmit}>
                     <div className="form-group">
-                        <label>Products</label>
+                    <div className='parent'>
+                        <div className='inline-block-child'>
+                            <label>Products</label> 
+                        </div>
+                        <div className='product-label inline-block-child'>
+                            <button type="button" class="btn btn-primary" onClick={this.addEmptyProductField}>Add</button>  
+                        </div>
+                        </div>
+                        </div>
                         {this.orderList()}
-                    </div>
                     <div className="form-group">
                         <label>Customer Name: </label>
                         <input type="text"
