@@ -15,6 +15,7 @@ export default class EditOrder extends Component {
         this.onChangeOrderStatus = this.onChangeOrderStatus.bind(this);
         this.onChangeOrderName = this.onChangeOrderName.bind(this);
         this.addEmptyProductField = this.addEmptyProductField.bind(this)
+        this.removeProduct = this.removeProduct.bind(this)
         this.onSubmit = this.onSubmit.bind(this);
 
         this.state = {
@@ -23,22 +24,20 @@ export default class EditOrder extends Component {
             customerName: "",
             customerPostal: "", 
             customerUnit: "",
-            totalCost: 0, 
+            totalCost: 0.0, 
             customerContact: "", 
             usedPromoCode: "", 
             orderStatus: "",
             products: [], 
-            orderStatuses: ['-', "Accepted", "Delivered"],
+            orderStatuses: [{id:1, value:'-'}, {id:2, value: "Accepted"}, {id:3, value:"Delivered"}],
         }
     }
 
     componentDidMount() {
         axios.get('https://swiftys-server.glitch.me/api/orders/order/' +this.props.match.params.id)
             .then(response => {
-                // console.log(response)
                 this.setState({
                     cart: response.data.cart, 
-                    // dateTime: response.data.dateTime, 
                     customerName:response.data.address.name, 
                     customerPostal: response.data.address.postal,
                     customerUnit: response.data.address.unit,
@@ -84,7 +83,7 @@ export default class EditOrder extends Component {
 
     onChangeUsedPromoCode(e) {
         this.setState({
-            customerUnit: e.target.value
+            usedPromoCode: e.target.value
         }) 
     }
 
@@ -95,20 +94,24 @@ export default class EditOrder extends Component {
     }
 
     onChangeOrderName(index, e) {
-        // console.log(e.target.options.selectedIndex)
         let tempCart = [...this.state.cart];
         tempCart[index].name =  e.target.value
-        tempCart[index].id = e.target.options.selectedIndex
+        tempCart[index].id = e.target.options.selectedIndex + 1
+        tempCart[index].quantity = 1
+        let newTotalCost = this.totalCost(tempCart)
         this.setState({
-            cart: tempCart
+            cart: tempCart,
+            totalCost: newTotalCost
         })
     }
 
     onChangeOrderQty(index, e) {
         let tempCart = [...this.state.cart];
-        tempCart[index].quantity =  e.target.value
+        tempCart[index].quantity =  parseInt(e.target.value)
+        let newTotalCost = this.totalCost(tempCart)
         this.setState({
-            cart: tempCart
+            cart: tempCart,
+            totalCost: newTotalCost
         })
     }
 
@@ -119,24 +122,69 @@ export default class EditOrder extends Component {
         }
     }  
 
-    addEmptyProductField(e){
-        let tempCart = [...this.state.cart]
-        tempCart.push({
-            id: "", 
-            size: "", 
-            quantity: 0, 
-            name: ""
+    totalCost(tempCart) {
+        let newTotalCost = 0
+        tempCart.map(product => {
+            newTotalCost += this.findProductPrice(product.id) * product.quantity
         })
+        return newTotalCost
+    }
+
+    removeProduct(index) {
+        let tempCart = [...this.state.cart] 
+        tempCart.splice(index, 1);
+        let newTotalCost = this.totalCost(tempCart);
         this.setState({
-            cart: tempCart
+            cart: tempCart,
+            totalCost: newTotalCost
         })
     }
 
+
+    addEmptyProductField(e){
+        let tempCart = [...this.state.cart]
+        tempCart.push({
+            id: 1, 
+            size: "", 
+            quantity: 1, 
+            name: ""
+        })
+        let newTotalCost = this.totalCost(tempCart)
+        this.setState({
+            cart: tempCart,
+            totalCost: newTotalCost
+        })
+    }
+
+    onSubmit(e) {
+        e.preventDefault();
+
+        const order = {
+            cart: this.state.cart,
+            address: {
+                name: this.state.customerName, 
+                phone: this.state.customerContact,
+                unit: this.state.customerUnit, 
+                postal: this.state.customerPostal
+            }, 
+            totalCost: this.state.totalCost, 
+            orderStatus: this.state.orderStatus, 
+            modified: true,
+            usedPromoCode: this.state.usedPromoCode
+        }
+
+        console.log(order)
+
+        axios.post('https://swiftys-server.glitch.me/api/orders/updateOrder/' + this.props.match.params.id, order)
+            .then(res => console.log(res.data)).then((_) =>  window.location = '/');
+    }
+
     orderList() {
-        return this.state.cart.map((product, index) => {
+        return this.state.cart.map((product, index) => { 
             return ( 
-            <div className="row"> 
-                <div className="col-4">
+            <div key={product.id}>
+            <div className="row product-row"> 
+                <div className="col-3">
                     <select ref="userInput"
                             required
                             className="form-control"
@@ -152,40 +200,26 @@ export default class EditOrder extends Component {
                             }
                         </select>
                 </div>
-                <div className="col-4">
+                <div className="col-3">
                     <input type="number"
+                            min = "1"
                             required
                             className="form-control"
                             value={this.state.cart[index].quantity}
                             onChange={(e) => this.onChangeOrderQty(index, e)}
                     />
                 </div>
-                <div className="col-4">
-                    <input className="form-control" type="text" placeholder={this.findProductPrice(product.id)} readOnly/>
+                <div className="col-3">
+                    <input className="form-control" type="text" placeholder={`$${parseFloat(this.findProductPrice(product.id) * product.quantity).toFixed(2)}`} readOnly/>
                 </div>
+                <div className="col-3">
+                    <button type="button" className="btn btn-danger" onClick={(e) => this.removeProduct(index, e)}>Delete</button>  
+                </div>
+            </div>
             </div>
         )
     }
         )
-    }
-
-    onSubmit(e) {
-        e.preventDefault();
-
-        const exercise = {
-            username: this.state.username,
-            description: this.state.description, 
-            duration: this.state.duration, 
-            date: this.state.date
-        }
-
-        console.log(exercise)
-
-        axios.post('http://localhost:5000/exercises/update/' + this.props.match.params.id, exercise)
-            .then(res => console.log(res.data));
-
-
-        window.location = '/'
     }
 
     render() {
@@ -199,9 +233,23 @@ export default class EditOrder extends Component {
                             <label>Products</label> 
                         </div>
                         <div className='product-label inline-block-child'>
-                            <button type="button" class="btn btn-primary" onClick={this.addEmptyProductField}>Add</button>  
+                            <button type="button" className="btn btn-primary" onClick={this.addEmptyProductField}>Add</button>  
                         </div>
                         </div>
+                        </div>
+                        <div className="row">
+                            <div className="col-3">
+                                <h6>Product Name</h6>
+                            </div>
+                            <div className="col-3">
+                                <h6>Product Quantity</h6>
+                            </div>
+                            <div className="col-3">
+                                <h6>Total Cost</h6>
+                            </div>
+                            <div className="col-3">
+                                <h6>Action</h6>
+                            </div>
                         </div>
                         {this.orderList()}
                     <div className="form-group">
@@ -259,14 +307,17 @@ export default class EditOrder extends Component {
                             {
                                 this.state.orderStatuses.map(function(oState) {
                                     return <option
-                                    key={oState}
-                                    value={oState}>{oState}
+                                    key={oState.id}
+                                    value={oState.value}>{oState.value}
                                     </option>;
                                 })
                             }
                         </select>
                     </div>
-
+                    <div className="form-group">
+                        <label>Total Cost: </label>
+                        <input className="form-control" type="text" placeholder={`$${parseFloat(this.state.totalCost).toFixed(2)}`} readOnly/>
+                    </div>
                     <div className="form-group">
                         <input type="submit" value="Save Order Log" className="btn btn-primary"/>
                     </div>

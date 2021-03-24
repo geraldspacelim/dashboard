@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios'
 
 const Order = props => (
-    <tr>
+    <tr className= {props.order.modified ? "table-warning" : "table-light"}>
       <td>{props.order.address.name}</td>
       <td>{props.order.date}</td>
       <td>{displayCart(props.order.cart)}</td>

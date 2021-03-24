@@ -16,7 +16,7 @@ function App() {
         <br/> 
         <Route path="/" exact component={OrdersList}/>
         <Route path="/edit/:id" component={EditOrder}/>
-        <Route path="/create" component={CreateOrder}/>
+        {/* <Route path="/create" component={CreateOrder}/> */}
       {/* </div> */}
     </Router>
   );
